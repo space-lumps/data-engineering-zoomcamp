@@ -187,4 +187,42 @@ then wait for data to load
 (renamed file to ingest_data.py)
 and add variables to script file for year and month, then replace these values in url with the variable names... also parameterize as much as possible: pg_user, pg_pass, pg_host, pg_db, pg_port....
 
-### now, make it configurable:
+### now, make it configurable thru CLI:
+We will use click to parse the arguments so we can pass them thru CLI.
+```Python
+import click
+...
+
+@click.command()
+@click.option('--pg-user', default='root', help='PostgreSQL username')
+@click.option('--pg-pass', default='root', help='PostgreSQL password')
+@click.option('--pg-host', default='localhost', help='PostgreSQL host')
+@click.option('--pg-port', default='5432', help='PostgreSQL port')
+@click.option('--pg-db', default='ny_taxi', help='PostgreSQL database name')
+@click.option('--year', default=2021, type=int, help='Year of the data')
+@click.option('--month', default=1, type=int, help='Month of the data')
+@click.option('--chunksize', default=100000, type=int, help='Chunk size for ingestion')
+@click.option('--target-table', default='yellow_taxi_data', help='Target table name')
+def main(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, chunksize, target_table):
+    ...
+```
+
+```uv run python ingest_data.py --help```
+this command will list the arguments available
+
+### Sample ingestion script:
+```bash
+uv run python ingest_data.py \
+  --pg-user=root \
+  --pg-pass=root \
+  --pg-host=localhost \
+  --pg-port=5432 \
+  --pg-db=ny_taxi \
+  --target-table=yellow_taxi_trips \
+  --year=2021 \
+  --month=1 \
+  --chunksize=100000
+```
+
+# Now, turn it all into a Dockerized pipeline
+1:42:01
