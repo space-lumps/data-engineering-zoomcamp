@@ -225,7 +225,8 @@ uv run python ingest_data.py \
   --month=1 \
   --chunksize=100000
   ```
-# ==================================================================
+
+---
 
 # Now, turn it all into a Dockerized pipeline
 first, go to Dockerfile:
@@ -352,4 +353,4 @@ taxi_ingest:v001 \
   --chunksize=100000
   ```
 and we can run this here in terminal
-and then refresh tables inside of pgadmin and the table will be here filled with our data
+and then refresh tables inside of pgadmin and the table will be here filled with our data!
