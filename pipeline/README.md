@@ -147,15 +147,18 @@ df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
 
 ### check that table has been created:
 back in pgcli terminal:
-```\dt```
+`\dt`
+
+```text
 Should see this:
 +--------+------------------+-------+-------+
 | Schema | Name             | Type  | Owner |
 |--------+------------------+-------+-------|
 | public | yellow_taxi_data | table | root  |
 +--------+------------------+-------+-------+
+```
 
-### once confirmed, we can start inserting data
+### once we confirm the table was created, we can start inserting data:
 -- it is too big to insert data at once, so we must split it into smaller CHUNKS:
 ```Python
 df_iter = pd.read_csv(
@@ -227,6 +230,10 @@ uv run python ingest_data.py \
   ```
 
 ---
+
+
+
+
 
 # Now, turn it all into a Dockerized pipeline
 first, go to Dockerfile:
