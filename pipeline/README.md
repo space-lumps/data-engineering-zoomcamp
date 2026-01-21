@@ -149,8 +149,8 @@ df.head(n=0).to_sql(name='yellow_taxi_data', con=engine, if_exists='replace')
 back in pgcli terminal:
 `\dt`
 
+Should output:
 ```text
-Should see this:
 +--------+------------------+-------+-------+
 | Schema | Name             | Type  | Owner |
 |--------+------------------+-------+-------|
