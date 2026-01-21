@@ -41,13 +41,13 @@ CREATE TABLE test (id INTEGER, name VARCHAR(50))
 ```
 
 -- Insert data
-INSERT INTO test VALUES (1, 'Hello Docker');
+`INSERT INTO test VALUES (1, 'Hello Docker');`
 
 -- Query data
-SELECT * FROM test;
+`SELECT * FROM test;`
 
 -- Exit
-\q
+`\q`
 -- even after exiting, the data should still be here
 
 
@@ -156,7 +156,7 @@ Should see this:
 +--------+------------------+-------+-------+
 
 ### once confirmed, we can start inserting data
--- it is too big to insert data at once, so we must split it into smaller portions:
+-- it is too big to insert data at once, so we must split it into smaller CHUNKS:
 ```Python
 df_iter = pd.read_csv(
     url,
@@ -210,7 +210,9 @@ def main(pg_user, pg_pass, pg_host, pg_port, pg_db, year, month, chunksize, targ
 ```uv run python ingest_data.py --help```
 this command will list the arguments available
 
-### Sample ingestion script:
+
+
+### Sample ingestion script for VIRTUAL ENVIRON:
 ```bash
 uv run python ingest_data.py \
   --pg-user=root \
@@ -218,11 +220,136 @@ uv run python ingest_data.py \
   --pg-host=localhost \
   --pg-port=5432 \
   --pg-db=ny_taxi \
-  --target-table=yellow_taxi_trips \
+  --target-table=yellow_taxi_trips_2021_01 \
   --year=2021 \
   --month=1 \
   --chunksize=100000
-```
+  ```
+# ==================================================================
 
 # Now, turn it all into a Dockerized pipeline
-1:42:01
+first, go to Dockerfile:
+instead of `COPY pipeline.py .` change to `COPY ingest_data.py`
+
+### Sample ingestion script FOR DOCKER:
+```bash
+# `uv run python ingest_data.py \` <--- instead of this:
+docker run -it --rm \
+taxi_ingest:v001 \
+  --pg-user=root \
+  --pg-pass=root \
+  --pg-host=localhost \
+  --pg-port=5432 \
+  --pg-db=ny_taxi \
+  --target-table=yellow_taxi_trips_2021_02 \
+  --year=2021 \
+  --month=1 \
+  --chunksize=100000
+  ```
+
+
+### now, running this throws an error saying there is no container running at localhost
+the problem is that localhost inside virtual environment (postgres) is diff from localhost inside Docker container
+so, we have to run two containers on the same network
+next, run `docker network`
+then, `docker network create pg-network` -- this adds a virtual Docker network called pg-network
+when we do this, now we can add to ingestion script: `--network=pg-network \`  # add this line
+
+### next, we will stop both running containers are re-run them using the network config:
+```bash
+# Run PostgreSQL on the network
+docker run -it --rm \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
+  -e POSTGRES_DB="ny_taxi" \
+  -v ny_taxi_postgres_data:/var/lib/postgresql \
+  -p 5432:5432 \
+  --network=pg-network \
+  --name pgdatabase \   # this name is important so the containers can see each other
+  postgres:18
+```
+
+```bash
+docker run -it --rm \
+--network=pg-network \
+taxi_ingest:v001 \
+  --pg-user=root \
+  --pg-pass=root \
+  --pg-host=pgdatabase \
+  --pg-port=5432 \
+  --pg-db=ny_taxi \
+  --target-table=yellow_taxi_trips_2021_1 \
+  --chunksize=100000
+```
+
+### next, instead of using pgcli to interact with the tables,
+we will use pgadmin-- so, run this in a new terminal:
+```bash
+# In another terminal, run pgAdmin on the same network
+docker run -it --rm \
+  -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+  -e PGADMIN_DEFAULT_PASSWORD="root" \
+  -v pgadmin_data:/var/lib/pgadmin \
+  -p 8085:80 \
+  --network=pg-network \
+  --name pgadmin \
+  dpage/pgadmin4
+  ```
+
+### once both are running, open port 8085 in browser and log in to pgadmin using pgadmin credentials
+![pgadmin_screenshot](image.png)
+here we want to run both ingestion scripts simultaneously using docker compose
+create file called docker-compose.yaml
+used AI to generate .yaml from our two ingestion scripts:
+```yaml
+services:
+  pgdatabase:
+    image: postgres:18
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=ny_taxi
+    volumes:
+      - "ny_taxi_postgres_data:/var/lib/postgresql:rw"
+    ports:
+      - "5432:5432"
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=root
+    volumes:
+      - "pgadmin_data:/var/lib/pgadmin"
+    ports:
+      - "8085:80"
+
+volumes:
+  ny_taxi_postgres_data:
+  pgadmin_data:
+```
+
+### again open port on browser and log in to pgadmin
+name: pgdatabase
+host: pgdatabase
+username: root
+password: root
+
+it is running but we have no tables here.
+back in terminal run `docker network ls` to see list of running networks
+the most recent is called pipeline_default ({folder name}_default)
+
+so , now we want to run this script:
+```bash
+docker run -it --rm \
+--network=pipeline_default \
+taxi_ingest:v001 \
+  --pg-user=root \
+  --pg-pass=root \
+  --pg-host=pgdatabase \
+  --pg-port=5432 \
+  --pg-db=ny_taxi \
+  --target-table=yellow_taxi_trips_2021_1 \
+  --chunksize=100000
+  ```
+and we can run this here in terminal
+and then refresh tables inside of pgadmin and the table will be here filled with our data

@@ -16,7 +16,11 @@ COPY pyproject.toml .python-version uv.lock ./
 
 # install dependencies from uv.lock file(ensures reproducible builds):
 RUN uv sync --locked
-COPY pipeline.py . 
+# COPY pipeline.py . # we did this first
+# now we want to Dockerize this pipeline, so we are changing this to copy ingest_data
+COPY ingest_data.py .
 
 # ENTRYPOINT ["uv", "run", "python", "pipeline.py"]
-ENTRYPOINT ["python", "pipeline.py"]
+# ENTRYPOINT ["python", "pipeline.py"]
+# also need to edit entrypoint from pipeline to ingest_data:
+ENTRYPOINT ["python", "ingest_data.py"]
