@@ -1,4 +1,4 @@
-# data-engineering-zoomcamp
+# Data Engineering Projects
 This repository will contain various Data Engineering Projects
 
 ### Project 1: Pipeline
