@@ -1,2 +1,2 @@
 # data-engineering-zoomcamp
-Workshop Codespaces
+This repository will contain various Data Engineering Projects
