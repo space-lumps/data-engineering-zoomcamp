@@ -1,4 +1,4 @@
-# SETUP INSTRUCTIONS
+# STEP-BY-STEP BUILD INSTRUCTIONS
 
 ### start docker container
 ```bash
